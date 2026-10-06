@@ -4,20 +4,24 @@
  * 职责：读取智谱（bigmodel.cn）Coding Plan 的额度接口，把结果整理成一份
  * 稳定快照，并通过 Typert Remote 端点 `glmQuota/current` 交给浏览器半边。
  *
- * API Key 解析顺序（第一个命中的生效）：
- *   1. 行配置 config.apiKey（明文，不推荐）
- *   2. config.apiKeyEnv 指定的环境变量（默认 ZHIPU_API_KEY）
- *   3. config.configPath（默认 ~/.kimi-code/config.toml）中 base_url 含
- *      bigmodel.cn 的 provider 的 api_key
- *   4. 环境变量 ZAI_CODING_CN_API_KEY
+ * API Key 解析顺序（第一个命中的生效），详见 resolveApiKey()：
+ *   1. 行配置 config.apiKey（显式明文）
+ *   2. Harness 凭据通道：ctx.credentials.resolve(config.apiKeyEnv)，
+ *      与 provider 的 `apiKeyEnv` 走同一条路径（进程环境 → $DSH_HOME/.credentials.yaml → .env）
+ *   3. 凭据服务缺席时直接读同名环境变量
+ *   4. config.configPath 指定的 TOML（默认关闭，可选）
  */
 
 import { readFileSync } from 'node:fs'
-import { homedir } from 'node:os'
-import { join } from 'node:path'
 
 const QUOTA_URL = 'https://bigmodel.cn/api/monitor/usage/quota/limit'
-const DEFAULT_CONFIG_PATH = () => join(homedir(), '.kimi-code', 'config.toml')
+
+/**
+ * 默认尝试的凭据引用名。名字就是 provider 配置里的 `apiKeyEnv` ——
+ * 例如 llm-pi-ai 的 `providers.zai-coding-cn.apiKeyEnv: ZAI_CODING_CN_API_KEY`。
+ * 通过 Harness 自己的凭据通道解析，因此密钥留在 Models 页面/凭据库里，配置文件不存密钥。
+ */
+const DEFAULT_API_KEY_REFS = ['ZAI_CODING_CN_API_KEY', 'ZHIPU_API_KEY']
 
 /**
  * 只有当前模型属于这些 provider 时才显示徽标。
@@ -145,7 +149,7 @@ export const typertContribution = Object.freeze({
   model: { services: [], events: [], objects: [] },
 })
 
-/** 从 config.toml 文本里挑出 base_url 指向 bigmodel.cn 的 provider 的 api_key。 */
+/** 从 TOML 文本里挑出 base_url 指向 bigmodel.cn 的 provider 的 api_key（可选来源，默认关闭）。 */
 export function apiKeyFromToml(text) {
   for (const section of String(text).split(/^\[/m).slice(1)) {
     if (!/bigmodel\.cn/.test(section)) continue
@@ -155,23 +159,75 @@ export function apiKeyFromToml(text) {
   return null
 }
 
-function resolveApiKey(config) {
+/**
+ * 要尝试的凭据引用名，按顺序取第一个已配置的。
+ * 名字就是 provider 配置里的 `apiKeyEnv`（credential reference），
+ * 例如 llm-pi-ai 的 `providers.zai-coding-cn.apiKeyEnv`。
+ */
+function apiKeyRefsFrom(config) {
+  const listed = Array.isArray(config.apiKeyEnv)
+    ? config.apiKeyEnv
+    : typeof config.apiKeyEnv === 'string'
+      ? [config.apiKeyEnv]
+      : []
+  const refs = listed
+    .filter((ref) => typeof ref === 'string')
+    .map((ref) => ref.trim())
+    .filter((ref) => ref.length > 0)
+  return refs.length > 0 ? refs : [...DEFAULT_API_KEY_REFS]
+}
+
+/**
+ * 解析 API Key。按顺序：
+ *   1. `config.apiKey` —— 显式明文，最高优先
+ *   2. Harness 凭据通道 `ctx.credentials.resolve(ref)` —— 与 llm-pi-ai 解析 provider
+ *      的 `apiKeyEnv` 走**同一条路径**（进程环境 → `$DSH_HOME/.credentials.yaml`
+ *      → 项目/用户 `.env` 兜底）。配置文件里不存密钥，密钥由 Harness 自己管。
+ *   3. 凭据服务缺席时直接读同名环境变量（与官方 adapter 的降级行为一致）
+ *   4. `config.configPath` 指定的 TOML（默认关闭，纯可选项）
+ *
+ * 刻意不去读其它应用的配置文件：那是错的来源，也轮不到这个插件去猜。
+ */
+export async function resolveApiKey(ctx, config) {
   const direct = typeof config.apiKey === 'string' ? config.apiKey.trim() : ''
-  if (direct) return direct
-  const envName = typeof config.apiKeyEnv === 'string' && config.apiKeyEnv ? config.apiKeyEnv : 'ZHIPU_API_KEY'
-  const fromEnv = process.env[envName]?.trim()
-  if (fromEnv) return fromEnv
-  const configPath =
-    typeof config.configPath === 'string' && config.configPath ? config.configPath : DEFAULT_CONFIG_PATH()
-  try {
-    const fromFile = apiKeyFromToml(readFileSync(configPath, 'utf8'))
-    if (fromFile) return fromFile
-  } catch {
-    /* 文件不存在或不可读时继续走下一个来源 */
+  if (direct) return { key: direct, refs: [], source: 'config.apiKey' }
+
+  const refs = apiKeyRefsFrom(config)
+  // 用 ctx.get() 而不是属性访问 ctx.credentials：属性访问受 inject 声明检查约束，
+  // 而凭据服务不该成为插件激活的硬依赖（ctx.get 的 strict 只管 fiber 是否 active）。
+  const credentials = ctx?.get?.('credentials')
+  let source = null
+  if (credentials !== undefined && typeof credentials.resolve === 'function') {
+    source = 'credentials'
+    for (const ref of refs) {
+      try {
+        const hit = await credentials.resolve(ref)
+        const value = typeof hit?.value === 'string' ? hit.value.trim() : ''
+        if (value) return { key: value, refs, source: `credentials:${hit.source ?? 'seam'}:${ref}` }
+      } catch {
+        /* 单个引用解析失败就试下一个 */
+      }
+    }
+  } else {
+    // 凭据服务缺席时不直接失败，退回读进程环境（与官方 adapter 的降级行为一致）
+    source = 'env'
+    for (const ref of refs) {
+      const value = process.env[ref]?.trim()
+      if (value) return { key: value, refs, source: `env:${ref}` }
+    }
   }
-  const fallback = process.env.ZAI_CODING_CN_API_KEY?.trim()
-  if (fallback) return fallback
-  return null
+
+  // 可选逃生口：只有显式配置了 configPath 才读文件，且排在凭据通道之后。
+  if (typeof config.configPath === 'string' && config.configPath) {
+    try {
+      const fromFile = apiKeyFromToml(readFileSync(config.configPath, 'utf8'))
+      if (fromFile) return { key: fromFile, refs, source: `toml:${config.configPath}` }
+    } catch {
+      /* 文件不存在或不可读时继续 */
+    }
+  }
+
+  return { key: null, refs, source }
 }
 
 /** unit/number → 窗口归类。5 小时窗口的 number 是 5，周窗口的 number 是 1。 */
@@ -261,14 +317,17 @@ class GlmQuotaService {
   }
 
   async load() {
-    const apiKey = resolveApiKey(this.config)
+    const resolved = await resolveApiKey(this.ctx, this.config)
+    const apiKey = resolved.key
     if (apiKey === null) {
       return {
         ok: false,
         code: 'NO_API_KEY',
         message:
-          '未找到智谱 API Key。请在插件配置里填 apiKey，或设置 ZHIPU_API_KEY，' +
-          '或在 ~/.kimi-code/config.toml 中配置一个 base_url 含 bigmodel.cn 的 provider。',
+          '没有找到智谱 API Key。已在 Harness 凭据里尝试这些引用名：' +
+          `${resolved.refs.join(' / ')}。` +
+          '它们的名字对应 provider 配置里的 apiKeyEnv —— 在 Models 页面给该 provider 填好密钥，' +
+          '或在插件配置里改 apiKeyEnv（也可写数组），或直接给 config.apiKey。',
       }
     }
     const signal = AbortSignal.timeout(this.timeoutMs)

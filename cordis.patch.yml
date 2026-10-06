@@ -4,7 +4,11 @@
     - id: glm-quota
       name: '@YueZeyi/dsh-glm-quota'
       config:
-        apiKeyEnv: ZHIPU_API_KEY
+        # 凭据引用名（= provider 配置里的 apiKeyEnv），按顺序取第一个已配置的。
+        # 走 Harness 自己的凭据通道：进程环境 或 $DSH_HOME/.credentials.yaml。
+        apiKeyEnv:
+          - ZAI_CODING_CN_API_KEY
+          - ZHIPU_API_KEY
         cacheTtlMs: 60000
         timeoutMs: 15000
         # 只有当前模型属于这些 provider 时才显示徽标（键 = llm-pi-ai 的 provider id）。

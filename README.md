@@ -56,16 +56,22 @@ Client 半边用 Harness 的模块表取 React，不打包任何 Harness Client 
 
 ## API Key 来源
 
-按顺序取第一个命中的：
+密钥**不写进配置文件**，而是走 Harness 自己的凭据通道，和 provider 用 `apiKeyEnv`
+引用密钥是同一套机制。按顺序取第一个命中的：
 
-1. 行配置 `apiKey`（明文，不推荐）
-2. `apiKeyEnv` 指定的环境变量，默认 `ZHIPU_API_KEY`
-3. `configPath` 指向的 TOML（默认 `~/.kimi-code/config.toml`）里 `base_url` 含 `bigmodel.cn`
-   的 provider 的 `api_key`
-4. 环境变量 `ZAI_CODING_CN_API_KEY`
+1. 行配置 `apiKey`（显式明文，最高优先，一般不用）
+2. `ctx.credentials.resolve(ref)` —— ref 就是 `apiKeyEnv` 里的名字，默认依次尝试
+   `ZAI_CODING_CN_API_KEY`、`ZHIPU_API_KEY`。解析来源是 Harness 的凭据层：
+   **进程环境 → `$DSH_HOME/.credentials.yaml` → 项目/用户 `.env` 兜底**
+3. 凭据服务缺席时，直接读同名环境变量（与官方 adapter 的降级行为一致）
+4. `configPath` 指向的 TOML 里 `base_url` 含 `bigmodel.cn` 的 provider 的 `api_key`
+   —— **默认关闭**，纯粹是可选逃生口
 
-> ⚠️ 第 3 条默认去读 **Kimi Code** 的配置文件。它只是兜底，但如果你不想让插件碰那个文件，
-> 在配置里把 `configPath` 指向别处，或者设上 `ZHIPU_API_KEY`（第 2 条会先生效）。
+所以正常情况下你只需要在 **Models 页面给该 provider 填好密钥**（或设好同名环境变量），
+插件就能读到，配置里不会出现任何密钥。
+
+> 如果你用的不是 `zai-coding-cn` 这条路由，把 `apiKeyEnv` 改成你 provider 里那个引用名即可
+> （也可以写数组，按顺序尝试）。
 
 ## 配置
 
@@ -75,13 +81,16 @@ Client 半边用 Harness 的模块表取 React，不打包任何 Harness Client 
 - id: glm-quota
   name: '@YueZeyi/dsh-glm-quota'
   config:
-    apiKeyEnv: ZHIPU_API_KEY   # 换个环境变量名
+    apiKeyEnv:                 # 凭据引用名 = provider 的 apiKeyEnv；数组按顺序尝试
+      - ZAI_CODING_CN_API_KEY
+      - ZHIPU_API_KEY
     cacheTtlMs: 60000          # Host 侧缓存时长
     timeoutMs: 15000           # 单次请求超时
     providers:                 # 只有这些 provider 才显示（键 = llm-pi-ai 的 provider id）
       - zai-coding-cn
     models:                    # provider 对不上时的模型 id 兜底
       - glm
+    # configPath: C:\path\to\config.toml   # 可选：从 TOML 读 api_key（默认不读任何文件）
 ```
 
 ## 安装
