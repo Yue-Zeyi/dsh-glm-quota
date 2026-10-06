@@ -1,0 +1,15 @@
+# glm-quota 插件包：插入 Host 半边（额度查询服务 + Remote 端点）。
+# Client 半边（浏览器里的额度徽标）由 package.json 的 dsh.client 声明。
+- insert:
+    - id: glm-quota
+      name: '@YueZeyi/dsh-glm-quota'
+      config:
+        apiKeyEnv: ZHIPU_API_KEY
+        cacheTtlMs: 60000
+        timeoutMs: 15000
+        # 只有当前模型属于这些 provider 时才显示徽标（键 = llm-pi-ai 的 provider id）。
+        providers:
+          - zai-coding-cn
+        # provider 对不上时的兜底：模型 id 含这些子串也算。
+        models:
+          - glm
