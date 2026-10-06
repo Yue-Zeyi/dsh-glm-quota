@@ -1,7 +1,8 @@
 # @YueZeyi/dsh-glm-quota
 
-在 Harness Web UI 里直接查看**智谱 GLM Coding Plan** 的**剩余**额度：当**当前模型是 GLM 时**，
-输入框下方出现一枚徽标，只有两个剩余百分比 —— 先是 5 小时窗口，再是周窗口：
+在 **DeepSeek Harness 桌面端**底部（输入框正下方）直接查看**智谱 GLM Coding Plan** 的
+**剩余**额度：当**当前模型是 GLM 时**，那里会出现一枚徽标，只有两个剩余百分比 ——
+先是 5 小时窗口，再是周窗口：
 
 ```
 GLM LITE   90% · 98%
@@ -130,7 +131,9 @@ dsh plugin --profile <profile> add github:Yue-Zeyi/dsh-glm-quota#v1.1.0
 
 ## 兼容性
 
-- 验证过的 Harness 版本：**0.2.0-rc.2**（Desktop）。
+- **支持 DeepSeek Harness 桌面端**（Electron 应用）：徽标渲染在底部输入框正下方，
+  已在 **0.2.0-rc.2（Desktop profile）** 上验证。`dsh web` 等其他带浏览器界面的 profile
+  走的是同一套客户端 UI，理论上同样可用（未逐一验证）。
 - 本插件**不依赖任何 `@deepseek-ai/*` 包**，因此不会触发 profile 的插件版本门禁；
   代价是它复刻了几个内部契约：Typert 的 `typertRemote` 绑定、手搭的 Remote descriptor、
   slot 名 `conversation.composer.dock`。如果 Harness 升级改了这些，插件会以

@@ -1,4 +1,4 @@
 {
   "title": "GLM usage",
-  "description": "Shows your Zhipu GLM Coding Plan 5-hour and weekly credit usage, with reset times, right under the composer."
+  "description": "Shows your Zhipu GLM Coding Plan remaining credits, percentages, and reset times right under the composer in the DeepSeek Harness desktop app; appears only while a GLM model is selected."
 }

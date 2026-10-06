@@ -1,4 +1,4 @@
 {
   "title": "GLM 用量",
-  "description": "在输入框下方直接查看智谱 GLM Coding Plan 的 5 小时积分与周积分用量、重置时间。"
+  "description": "在 DeepSeek Harness 桌面端输入框正下方直接查看智谱 GLM Coding Plan 的剩余额度、剩余百分比与重置时间；当前模型是 GLM 时才出现。"
 }

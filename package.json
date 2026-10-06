@@ -2,7 +2,7 @@
   "name": "@YueZeyi/dsh-glm-quota",
   "version": "1.0.0",
   "type": "module",
-  "description": "在 DeepSeek Harness 里查看智谱 GLM Coding Plan 的剩余额度：当前模型是 GLM 时，输入框下方显示两个剩余百分比",
+  "description": "在 DeepSeek Harness 桌面端输入框正下方查看智谱 GLM Coding Plan 的剩余额度：当前模型是 GLM 时显示两个剩余百分比，点开有剩余量、进度条与重置时间",
   "license": "MIT",
   "keywords": [
     "dsh",
