@@ -137,3 +137,21 @@ dsh plugin --profile <profile> add github:Yue-Zeyi/dsh-glm-quota#v1.1.0
   **明确的报错**失效（不会静默出错）。
 - 数据只发往 `https://bigmodel.cn`，没有其他网络请求；API Key 只用于这个请求的 Authorization 头。
 
+## 关于包名与分发渠道
+
+包名 `@YueZeyi/dsh-glm-quota` 与仓库地址里的 `Yue-Zeyi` 写法不同，这是**有意保留**的
+（GitHub 用户名大小写不敏感，`github.com/yue-zeyi` 指向同一账号）。
+
+**本包不经 npm 分发**：npm 禁止新包名含大写字母，这个包名会被
+`validate-npm-package-name` 直接拒掉：
+
+```
+@YueZeyi/dsh-glm-quota    REJECT  name can no longer contain capital letters
+@yue-zeyi/dsh-glm-quota   OK
+```
+
+所以只从 Git 安装。如果哪天要发 npm，把包名统一改成全小写
+`@yue-zeyi/dsh-glm-quota`（同时要改 `cordis.patch.yml` 的行 `name`、`client.js` 的模块
+`id`/`LOCAL_ID`、`index.js` 的 `PACKAGE`，并重新安装本地 profile）。
+
+

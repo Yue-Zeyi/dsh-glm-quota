@@ -2,3 +2,6 @@ node_modules/
 *.tgz
 .DS_Store
 Thumbs.db
+
+# 开发期自测与脚手架：不进仓库，也不会被打包（package.json 的 files 是白名单）
+_t/
