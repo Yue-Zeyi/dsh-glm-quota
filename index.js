@@ -287,7 +287,7 @@ class GlmQuotaService {
     //   binding.namespace  === descriptor.namespace
     // 官方做法是继承 TypertRemoteService 或调用 bindTypertRemote()，两者都要
     // 从插件里 import @deepseek-ai/dsh-typert-protocol。但 profile 插件是按软链
-    // 真实路径解析裸包名的（…\Desktop\1\glm-quota-plugin 往上没有 @deepseek-ai），
+    // 真实路径解析裸包名的，仓库所在目录树上通常没有 @deepseek-ai 那几个包，
     // 那个 import 有解析失败的风险，所以这里手写字段完全一致的冻结对象。
     this.typertRemote = Object.freeze({
       service: this,
