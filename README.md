@@ -89,13 +89,13 @@ Client 半边用 Harness 的模块表取 React，不打包任何 Harness Client 
 **从 Git（推荐）** —— Plugins 面板 → 添加插件，填入仓库地址：
 
 ```
-https://github.com/YueZeyi/dsh-glm-quota
+https://github.com/Yue-Zeyi/dsh-glm-quota
 ```
 
 或者命令行：
 
 ```powershell
-dsh plugin --profile <profile> add github:YueZeyi/dsh-glm-quota
+dsh plugin --profile <profile> add github:Yue-Zeyi/dsh-glm-quota
 ```
 
 **从本地目录**（开发时用）：
@@ -114,7 +114,7 @@ Harness **不支持插件自动更新**：升级要先卸载再装新版。
 
 ```powershell
 dsh plugin --profile <profile> remove @YueZeyi/dsh-glm-quota
-dsh plugin --profile <profile> add github:YueZeyi/dsh-glm-quota#v1.1.0
+dsh plugin --profile <profile> add github:Yue-Zeyi/dsh-glm-quota#v1.1.0
 ```
 
 从 Git 安装时，用 tag 或 commit 固定版本更稳（例如 `#v1.0.0`）。

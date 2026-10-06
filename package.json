@@ -16,7 +16,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YueZeyi/dsh-glm-quota.git"
+    "url": "git+https://github.com/Yue-Zeyi/dsh-glm-quota.git"
   },
   "engines": {
     "node": ">=20"
